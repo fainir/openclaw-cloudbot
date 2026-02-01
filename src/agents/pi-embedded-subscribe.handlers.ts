@@ -20,7 +20,24 @@ import {
 } from "./pi-embedded-subscribe.handlers.tools.js";
 
 export function createEmbeddedPiSessionEventHandler(ctx: EmbeddedPiSubscribeContext) {
+  let eventCount = 0;
   return (evt: EmbeddedPiSubscribeEvent) => {
+    eventCount++;
+    // DEBUG: log ALL events at warn level for visibility in production logs
+    const evtKeys = Object.keys(evt);
+    // For message events, include message role and content length
+    const msgRole =
+      evt.type.includes("message") && "message" in evt
+        ? (evt as { message?: { role?: string } }).message?.role
+        : undefined;
+    const msgContentLen =
+      evt.type.includes("message") && "message" in evt
+        ? JSON.stringify((evt as { message?: { content?: unknown } }).message?.content ?? null)
+            .length
+        : undefined;
+    ctx.log.warn(
+      `SESSION_EVENT #${eventCount}: type=${evt.type} keys=[${evtKeys.join(",")}]${msgRole ? ` role=${msgRole}` : ""}${msgContentLen !== undefined ? ` contentLen=${msgContentLen}` : ""}`,
+    );
     switch (evt.type) {
       case "message_start":
         handleMessageStart(ctx, evt as never);

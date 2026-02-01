@@ -530,6 +530,15 @@ export async function runEmbeddedAttempt(
         );
       }
 
+      // Debug wrapper to log streamFn calls
+      const originalStreamFn = activeSession.agent.streamFn;
+      activeSession.agent.streamFn = (model, context, options) => {
+        log.info(
+          `streamFn called: provider=${model.provider} id=${model.id} api=${model.api} baseUrl=${model.baseUrl ?? "(default)"} messagesCount=${context.messages.length} systemLen=${context.systemPrompt?.length ?? 0} hasApiKey=${!!options?.apiKey}`,
+        );
+        return originalStreamFn(model, context, options);
+      };
+
       try {
         const prior = await sanitizeSessionHistory({
           messages: activeSession.messages,
@@ -798,12 +807,19 @@ export async function runEmbeddedAttempt(
 
           // Only pass images option if there are actually images to pass
           // This avoids potential issues with models that don't expect the images parameter
+          log.info(
+            `calling prompt: runId=${params.runId} provider=${params.provider} model=${params.modelId} promptLen=${effectivePrompt.length} images=${imageResult.images.length}`,
+          );
           if (imageResult.images.length > 0) {
             await abortable(activeSession.prompt(effectivePrompt, { images: imageResult.images }));
           } else {
             await abortable(activeSession.prompt(effectivePrompt));
           }
+          log.info(`prompt returned: runId=${params.runId}`);
         } catch (err) {
+          log.warn(
+            `prompt error: runId=${params.runId} error=${err instanceof Error ? err.message : String(err)}`,
+          );
           promptError = err;
         } finally {
           log.debug(
@@ -825,6 +841,23 @@ export async function runEmbeddedAttempt(
 
         messagesSnapshot = activeSession.messages.slice();
         sessionIdUsed = activeSession.sessionId;
+        const lastMsg = messagesSnapshot.at(-1);
+        const lastContent = lastMsg && "content" in lastMsg ? lastMsg.content : null;
+        log.info(
+          `after prompt: runId=${params.runId} totalMessages=${messagesSnapshot.length} lastRole=${lastMsg?.role ?? "none"} lastContentLen=${JSON.stringify(lastContent ?? null).length} aborted=${aborted} promptError=${promptError ? "yes" : "no"}`,
+        );
+        // Debug: dump full message structure to understand empty content
+        if (lastMsg) {
+          const msgKeys = Object.keys(lastMsg);
+          log.info(`lastMsg keys: ${msgKeys.join(",")}`);
+          log.info(`lastMsg JSON (first 500): ${JSON.stringify(lastMsg).slice(0, 500)}`);
+        }
+        // Debug: log actual content to understand why it's empty
+        if (lastContent && Array.isArray(lastContent)) {
+          log.info(
+            `lastContent detail: runId=${params.runId} types=[${lastContent.map((c: unknown) => (c as { type?: string })?.type ?? "?").join(",")}] firstText=${JSON.stringify((lastContent[0] as { text?: string })?.text ?? "(none)").slice(0, 100)}`,
+          );
+        }
         cacheTrace?.recordStage("session:after", {
           messages: messagesSnapshot,
           note: promptError ? "prompt error" : undefined,

@@ -402,9 +402,45 @@ export async function resolveImplicitProviders(params: {
     allowKeychainPrompt: false,
   });
 
-  const minimaxKey =
-    resolveEnvApiKeyVarName("minimax") ??
-    resolveApiKeyFromProfiles({ provider: "minimax", store: authStore });
+  // Anthropic provider - explicitly configure when ANTHROPIC_API_KEY is set
+  // IMPORTANT: Use resolveEnvApiKey to get the actual key VALUE, not just the env var name
+  const anthropicEnvKey = resolveEnvApiKey("anthropic");
+  const anthropicKey =
+    anthropicEnvKey?.apiKey ??
+    resolveApiKeyFromProfiles({ provider: "anthropic", store: authStore });
+  if (anthropicKey) {
+    providers.anthropic = {
+      baseUrl: "https://api.anthropic.com",
+      api: "anthropic-messages",
+      apiKey: anthropicKey,
+      models: [
+        {
+          id: "claude-sonnet-4-20250514",
+          name: "Claude Sonnet 4",
+          reasoning: true,
+          input: ["text", "image"],
+          cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+          contextWindow: 200000,
+          maxTokens: 64000,
+        },
+        {
+          id: "claude-opus-4-5-20251101",
+          name: "Claude Opus 4.5",
+          reasoning: true,
+          input: ["text", "image"],
+          cost: { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
+          contextWindow: 200000,
+          maxTokens: 32000,
+        },
+      ],
+    };
+  }
+
+  // Helper to get actual API key value (not env var name)
+  const getApiKeyValue = (provider: string): string | undefined =>
+    resolveEnvApiKey(provider)?.apiKey ?? resolveApiKeyFromProfiles({ provider, store: authStore });
+
+  const minimaxKey = getApiKeyValue("minimax");
   if (minimaxKey) {
     providers.minimax = { ...buildMinimaxProvider(), apiKey: minimaxKey };
   }
@@ -417,23 +453,17 @@ export async function resolveImplicitProviders(params: {
     };
   }
 
-  const moonshotKey =
-    resolveEnvApiKeyVarName("moonshot") ??
-    resolveApiKeyFromProfiles({ provider: "moonshot", store: authStore });
+  const moonshotKey = getApiKeyValue("moonshot");
   if (moonshotKey) {
     providers.moonshot = { ...buildMoonshotProvider(), apiKey: moonshotKey };
   }
 
-  const syntheticKey =
-    resolveEnvApiKeyVarName("synthetic") ??
-    resolveApiKeyFromProfiles({ provider: "synthetic", store: authStore });
+  const syntheticKey = getApiKeyValue("synthetic");
   if (syntheticKey) {
     providers.synthetic = { ...buildSyntheticProvider(), apiKey: syntheticKey };
   }
 
-  const veniceKey =
-    resolveEnvApiKeyVarName("venice") ??
-    resolveApiKeyFromProfiles({ provider: "venice", store: authStore });
+  const veniceKey = getApiKeyValue("venice");
   if (veniceKey) {
     providers.venice = { ...(await buildVeniceProvider()), apiKey: veniceKey };
   }
@@ -446,17 +476,13 @@ export async function resolveImplicitProviders(params: {
     };
   }
 
-  const xiaomiKey =
-    resolveEnvApiKeyVarName("xiaomi") ??
-    resolveApiKeyFromProfiles({ provider: "xiaomi", store: authStore });
+  const xiaomiKey = getApiKeyValue("xiaomi");
   if (xiaomiKey) {
     providers.xiaomi = { ...buildXiaomiProvider(), apiKey: xiaomiKey };
   }
 
   // Ollama provider - only add if explicitly configured
-  const ollamaKey =
-    resolveEnvApiKeyVarName("ollama") ??
-    resolveApiKeyFromProfiles({ provider: "ollama", store: authStore });
+  const ollamaKey = getApiKeyValue("ollama");
   if (ollamaKey) {
     providers.ollama = { ...(await buildOllamaProvider()), apiKey: ollamaKey };
   }

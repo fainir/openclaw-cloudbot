@@ -6,6 +6,7 @@ import { resolveSessionAgentId } from "./agent-scope.js";
 import { createAgentsListTool } from "./tools/agents-list-tool.js";
 import { createBrowserTool } from "./tools/browser-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
+import { createComputerTool } from "./tools/computer-tool.js";
 import { createCronTool } from "./tools/cron-tool.js";
 import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
@@ -53,6 +54,16 @@ export function createOpenClawTools(options?: {
   modelHasVision?: boolean;
   /** Explicit agent ID override for cron/hook sessions. */
   requesterAgentIdOverride?: string;
+  /** Enable computer use tool for GUI interaction */
+  computerUseEnabled?: boolean;
+  /** Computer use display configuration */
+  computerUse?: {
+    displayWidth?: number;
+    displayHeight?: number;
+    screenWidth?: number;
+    screenHeight?: number;
+    displayNum?: number;
+  };
 }): AnyAgentTool[] {
   const imageTool = options?.agentDir?.trim()
     ? createImageTool({
@@ -138,6 +149,21 @@ export function createOpenClawTools(options?: {
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
   ];
+
+  // Add computer use tool if enabled (explicit option or via config)
+  const computerUseConfig = options?.config?.computerUse;
+  const computerUseEnabled = options?.computerUseEnabled ?? computerUseConfig?.enabled;
+  if (computerUseEnabled) {
+    tools.push(
+      createComputerTool({
+        displayWidth: options?.computerUse?.displayWidth ?? computerUseConfig?.displayWidth,
+        displayHeight: options?.computerUse?.displayHeight ?? computerUseConfig?.displayHeight,
+        screenWidth: options?.computerUse?.screenWidth ?? computerUseConfig?.screenWidth,
+        screenHeight: options?.computerUse?.screenHeight ?? computerUseConfig?.screenHeight,
+        displayNum: options?.computerUse?.displayNum ?? computerUseConfig?.displayNum,
+      }),
+    );
+  }
 
   const pluginTools = resolvePluginTools({
     context: {

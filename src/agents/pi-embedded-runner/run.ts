@@ -109,6 +109,9 @@ export async function runEmbeddedPiAgent(
       if (!model) {
         throw new Error(error ?? `Unknown model: ${provider}/${modelId}`);
       }
+      log.info(
+        `resolved model: provider=${model.provider} id=${model.id} api=${model.api} baseUrl=${model.baseUrl ?? "(default)"} reasoning=${model.reasoning ?? false}`,
+      );
 
       const ctxInfo = resolveContextWindowInfo({
         cfg: params.config,
@@ -241,6 +244,12 @@ export async function runEmbeddedPiAgent(
           });
           authStorage.setRuntimeApiKey(model.provider, copilotToken.token);
         } else {
+          const keyPreview = apiKeyInfo.apiKey
+            ? `${apiKeyInfo.apiKey.slice(0, 10)}...${apiKeyInfo.apiKey.slice(-4)}`
+            : "(empty)";
+          log.info(
+            `setting runtime API key: provider=${model.provider} source=${apiKeyInfo.source} keyPreview=${keyPreview}`,
+          );
           authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
         }
         lastProfileId = apiKeyInfo.profileId;

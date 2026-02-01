@@ -64,6 +64,21 @@ export type OpenClawConfig = {
     checkOnStart?: boolean;
   };
   browser?: BrowserConfig;
+  /** Computer use configuration for GUI control */
+  computerUse?: {
+    /** Enable computer use tool (default: false) */
+    enabled?: boolean;
+    /** API coordinate space width (default: 1280) */
+    displayWidth?: number;
+    /** API coordinate space height (default: 800) */
+    displayHeight?: number;
+    /** Actual screen width (default: 1920) */
+    screenWidth?: number;
+    /** Actual screen height (default: 1080) */
+    screenHeight?: number;
+    /** X display number (default: 99 for Xvfb) */
+    displayNum?: number;
+  };
   ui?: {
     /** Accent color for OpenClaw UI chrome (hex). */
     seamColor?: string;

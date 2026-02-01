@@ -34,12 +34,13 @@ export function handleMessageStart(
   evt: AgentEvent & { message: AgentMessage },
 ) {
   const msg = evt.message;
+  ctx.log.debug(`message_start: runId=${ctx.params.runId} role=${msg?.role ?? "?"}`);
   if (msg?.role !== "assistant") {
     return;
   }
 
   // KNOWN: Resetting at `text_end` is unsafe (late/duplicate end events).
-  // ASSUME: `message_start` is the only reliable boundary for “new assistant message begins”.
+  // ASSUME: `message_start` is the only reliable boundary for "new assistant message begins".
   // Start-of-message is a safer reset point than message_end: some providers
   // may deliver late text_end updates after message_end, which would otherwise
   // re-trigger block replies.
@@ -63,6 +64,11 @@ export function handleMessageUpdate(
       ? (assistantEvent as Record<string, unknown>)
       : undefined;
   const evtType = typeof assistantRecord?.type === "string" ? assistantRecord.type : "";
+
+  // Debug: log all assistant message events
+  ctx.log.debug(
+    `message_update: runId=${ctx.params.runId} evtType=${evtType || "(none)"} hasAssistantEvent=${!!assistantEvent}`,
+  );
 
   if (evtType !== "text_delta" && evtType !== "text_start" && evtType !== "text_end") {
     return;

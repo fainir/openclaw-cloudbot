@@ -10,6 +10,11 @@ import {
   startBrowserControlServiceFromConfig,
 } from "../browser/control-service.js";
 import { createBrowserRouteDispatcher } from "../browser/routes/dispatcher.js";
+import {
+  executeComputerAction,
+  type ComputerAction,
+  type ScrollDirection,
+} from "../cli/nodes-computer.js";
 import { loadConfig } from "../config/config.js";
 import { GatewayClient } from "../gateway/client.js";
 import { loadOrCreateDeviceIdentity } from "../infra/device-identity.js";
@@ -836,6 +841,59 @@ async function handleInvoke(
       await sendInvokeResult(client, frame, {
         ok: true,
         payloadJSON: JSON.stringify(payload),
+      });
+    } catch (err) {
+      await sendInvokeResult(client, frame, {
+        ok: false,
+        error: { code: "INVALID_REQUEST", message: String(err) },
+      });
+    }
+    return;
+  }
+
+  // Computer use action handler
+  if (command === "computer.action") {
+    try {
+      const params = decodeParams<{
+        action: ComputerAction;
+        coordinate?: [number, number];
+        text?: string;
+        scrollDirection?: ScrollDirection;
+        scrollAmount?: number;
+        duration?: number;
+        key?: string;
+        displayNum?: number;
+        displayWidth?: number;
+        displayHeight?: number;
+        screenWidth?: number;
+        screenHeight?: number;
+      }>(frame.paramsJSON);
+
+      if (!params.action) {
+        throw new Error("INVALID_REQUEST: action required");
+      }
+
+      const result = await executeComputerAction({
+        action: params.action,
+        coordinate: params.coordinate,
+        text: params.text,
+        scrollDirection: params.scrollDirection,
+        scrollAmount: params.scrollAmount,
+        duration: params.duration,
+        key: params.key,
+        displayNum: params.displayNum,
+        displayWidth: params.displayWidth ?? 1280,
+        displayHeight: params.displayHeight ?? 800,
+        screenWidth: params.screenWidth ?? 1920,
+        screenHeight: params.screenHeight ?? 1080,
+      });
+
+      await sendInvokeResult(client, frame, {
+        ok: result.success,
+        payloadJSON: JSON.stringify(result),
+        error: result.success
+          ? undefined
+          : { code: "COMPUTER_ACTION_FAILED", message: result.error ?? "unknown error" },
       });
     } catch (err) {
       await sendInvokeResult(client, frame, {

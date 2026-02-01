@@ -166,6 +166,17 @@ export const OpenClawSchema = z
       })
       .strict()
       .optional(),
+    computerUse: z
+      .object({
+        enabled: z.boolean().optional(),
+        displayWidth: z.number().int().min(1).max(4096).optional(),
+        displayHeight: z.number().int().min(1).max(4096).optional(),
+        screenWidth: z.number().int().min(1).max(7680).optional(),
+        screenHeight: z.number().int().min(1).max(4320).optional(),
+        displayNum: z.number().int().min(0).max(99).optional(),
+      })
+      .strict()
+      .optional(),
     ui: z
       .object({
         seamColor: HexColorSchema.optional(),

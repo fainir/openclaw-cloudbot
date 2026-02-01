@@ -530,7 +530,9 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     maybeResolveCompactionWait,
   };
 
+  log.debug(`subscribing to session: runId=${params.runId}`);
   const unsubscribe = params.session.subscribe(createEmbeddedPiSessionEventHandler(ctx));
+  log.debug(`subscribed to session: runId=${params.runId}`);
 
   return {
     assistantTexts,
