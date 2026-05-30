@@ -488,6 +488,15 @@ export async function resolveImplicitProviders(params: {
           contextWindow: 200000,
           maxTokens: 32000,
         },
+        {
+          id: "claude-opus-4-8",
+          name: "Claude Opus 4.8",
+          reasoning: true,
+          input: ["text", "image"],
+          cost: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+          contextWindow: 1000000,
+          maxTokens: 128000,
+        },
       ],
     };
   }
